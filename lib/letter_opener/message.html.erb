@@ -58,7 +58,7 @@
 <div id="message_headers">
   <dl>
     <dt>From:</dt>
-    <dd><%= from %></dd>
+    <dd><%= CGI.escapeHTML(mail[:from].to_s) %></dd>
 
     <dt>Subject:</dt>
     <dd><strong><%= mail.subject %></strong></dd>
@@ -67,7 +67,12 @@
     <dd><%= Time.now.strftime("%b %e, %Y %I:%M:%S %p %Z") %></dd>
 
     <dt>To:</dt>
-    <dd><%= mail.to.join(", ") %></dd>
+    <dd><%= CGI.escapeHTML(mail[:to].to_s) %></dd>
+
+    <% unless mail[:reply_to].blank? %>
+    <dt>Reply to:</dt>
+    <dd><%= CGI.escapeHTML(mail[:reply_to].to_s) %></dd>
+    <% end %>
   </dl>
 
   <% if mail.multipart? %>
