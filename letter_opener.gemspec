@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = "letter_opener"
-  s.version     = "0.0.2"
+  s.version     = "1.0.0"
   s.author      = "Ryan Bates"
   s.email       = "ryan@railscasts.com"
   s.homepage    = "http://github.com/ryanb/letter_opener"
@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.files        = Dir["{lib,spec}/**/*", "[A-Z]*"] - ["Gemfile.lock"]
   s.require_path = "lib"
 
-  s.add_dependency 'launchy'
+  s.add_dependency 'launchy', '>= 2.0.4'
   s.add_development_dependency 'rspec', '~> 2.6.0'
   s.add_development_dependency 'mail', '~> 2.3.0'
 

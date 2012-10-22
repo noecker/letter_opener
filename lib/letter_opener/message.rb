@@ -2,14 +2,39 @@ module LetterOpener
   class Message
     attr_reader :mail
 
+    def self.rendered_messages(location, mail)
+      messages = []
+      messages << new(location, mail, mail.html_part) if mail.html_part
+      messages << new(location, mail, mail.text_part) if mail.text_part
+      messages << new(location, mail) if messages.empty?
+      messages.each(&:render)
+      messages.sort
+    end
+
     def initialize(location, mail, part = nil)
       @location = location
       @mail = mail
       @part = part
+      @attachments = []
     end
 
     def render
       FileUtils.mkdir_p(@location)
+
+      if mail.attachments.any?
+        attachments_dir = File.join(@location, 'attachments')
+        FileUtils.mkdir_p(attachments_dir)
+        mail.attachments.each do |attachment|
+          path = File.join(attachments_dir, attachment.filename)
+
+          unless File.exists?(path) # true if other parts have already been rendered
+            File.open(path, 'wb') { |f| f.write(attachment.body.raw_source) }
+          end
+
+          @attachments << [attachment.filename, "attachments/#{URI.escape(attachment.filename)}"]
+        end
+      end
+
       File.open(filepath, 'w') do |f|
         f.write ERB.new(template).result(binding)
       end
@@ -28,11 +53,27 @@ module LetterOpener
     end
 
     def body
-      @body ||= (@part && @part.body || @mail.body).to_s
+      @body ||= begin
+        body = (@part && @part.body || @mail.body).to_s
+
+        mail.attachments.each do |attachment|
+          body.gsub!(attachment.url, "attachments/#{attachment.filename}")
+        end
+
+        body
+      end
     end
 
     def from
-      @from ||= @mail.from.kind_of?(Array) && @mail.from.join(", ") || @mail.from
+      @from ||= Array(@mail.from).join(", ")
+    end
+
+    def to
+      @to ||= Array(@mail.to).join(", ")
+    end
+
+    def reply_to
+      @reply_to ||= Array(@mail.reply_to).join(", ")
     end
 
     def type
@@ -42,6 +83,20 @@ module LetterOpener
     def encoding
       body.respond_to?(:encoding) ? body.encoding : "utf-8"
     end
+
+    def auto_link(text)
+      text.gsub(URI.regexp(%W[https http])) do
+        "<a href=\"#{$&}\">#{$&}</a>"
+      end
+    end
+
+    def h(content)
+      CGI.escapeHTML(content)
+    end
+
+    def <=>(other)
+      order = %w[rich plain]
+      order.index(type) <=> order.index(other.type)
+    end
   end
 end
-
